@@ -1,0 +1,134 @@
+# Redis Stack — Docker Compose Configuration
+
+```yaml
+services:
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis-stack
+
+    restart: unless-stopped
+
+    ports:
+      - "127.0.0.1:6379:6379"
+      - "127.0.0.1:8001:8001"
+
+    volumes:
+      - redis-data:/data
+
+    environment:
+      REDIS_ARGS: "--appendonly yes --appendfsync everysec"
+
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  redis-data:
+```
+
+## Configuration explanation
+
+| Setting | Purpose |
+|---|---|
+| `image` | Downloads Redis Stack from Docker Hub if needed. |
+| `container_name` | Names the container `redis-stack`. |
+| `restart` | Restarts the container automatically unless it has been manually stopped. |
+| `6379:6379` | Exposes the Redis server on your local computer. |
+| `8001:8001` | Exposes Redis Insight on your local computer. |
+| `redis-data:/data` | Stores Redis data files in a named Docker volume. |
+| `REDIS_ARGS` | Requests AOF persistence with synchronization approximately every second. |
+| `healthcheck` | Periodically checks whether Redis responds to `PING`. |
+| `volumes` | Declares the named volume managed by Docker. |
+
+Both ports are bound to `127.0.0.1`, so they are intended for local access rather than direct access from other machines.
+
+## How to run it
+
+**Step 1 — Open the VS Code terminal**
+
+Make sure you are in the folder containing `compose.yaml`.
+
+```powershell
+cd "$HOME\Documents\redis-docker-setup-guide"
+```
+
+If you cloned the repository somewhere else, use that folder's actual path instead.
+
+**Step 2 — Validate the configuration**
+
+```powershell
+docker compose config
+```
+
+If the YAML configuration is valid, Docker Compose prints the resolved configuration.
+
+**Step 3 — Start Redis Stack**
+
+```powershell
+docker compose up -d
+```
+
+**Step 4 — Verify the container**
+
+```powershell
+docker compose ps
+```
+
+**Step 5 — Test Redis**
+
+```powershell
+docker exec -it redis-stack redis-cli PING
+```
+
+Expected output:
+
+```text
+PONG
+```
+
+**Step 6 — Open Redis Insight**
+
+Visit [http://localhost:8001](http://localhost:8001) in your browser.
+
+## Important: If Redis is already running
+
+If you already created a container named `redis-stack` using `docker run`, **do not run `docker compose up -d` yet**. The existing container may conflict with the Compose configuration because of its name or port mappings.
+
+Check first:
+
+```powershell
+docker ps -a
+docker volume ls
+```
+
+Inspect the existing container and its volume mounts before deciding whether to reuse or migrate it. Do not delete the container or volume if you need the existing data.
+
+## Stop and restart
+
+Stop the Compose project:
+
+```powershell
+docker compose down
+```
+
+Start it again:
+
+```powershell
+docker compose up -d
+```
+
+The normal `docker compose down` preserves named volumes. Avoid `docker compose down -v` unless you intentionally want to remove the Compose-managed volumes and their stored data.
+
+## Push the file to GitHub
+
+After saving `compose.yaml` with `Ctrl + S`, run these commands from your project directory:
+
+```powershell
+git add compose.yaml
+git commit -m "Add Redis Docker Compose configuration"
+git push origin main
+```
+
+Your repository will then contain both `README.md` and `compose.yaml`.
